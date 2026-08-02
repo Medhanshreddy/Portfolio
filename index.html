@@ -13,11 +13,13 @@
 </head>
 <body id="top">
 
+  <canvas id="cursorCanvas"></canvas>
+
   <header>
     <div class="nav-container">
       <a href="#top" class="nav-brand">
         <span class="status-dot"></span>
-        <span class="brand-name">Medhansh Reddy</span>
+        <span class="brand-name">Velma M. Reddy</span>
       </a>
 
       <nav>
@@ -57,7 +59,7 @@
             </div>
           </div>
 
-          <h1 class="hero-title">VELMA MEDHANSH REDDY</h1>
+          <h1 class="hero-title">Engineering Intelligent Systems & Quantum Logic</h1>
           <p class="hero-description">
             Building resilient security architectures, real-time computer vision models, and exploring quantum algorithms to bridge software engineering with next-generation compute.
           </p>
@@ -336,8 +338,8 @@
 
           <div class="contact-actions">
             <a href="mailto:medhanshreddy.velma@example.com" class="btn btn-white">Send Direct Email</a>
-            <a href="www.linkedin.com/in/medhanshreddy" target="_blank" rel="noopener noreferrer" class="btn btn-dark-outline">LinkedIn ↗</a>
-            <a href="https://github.com/Medhanshreddy" target="_blank" rel="noopener noreferrer" class="btn btn-dark-outline">GitHub ↗</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="btn btn-dark-outline">LinkedIn ↗</a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="btn btn-dark-outline">GitHub ↗</a>
           </div>
         </div>
       </div>
@@ -353,19 +355,17 @@
 
   <script>
     // -----------------------------------------------------------------------
-    // 1. FULLSCREEN AMBIENT MOUSE SPOTLIGHT (CANVAS)
+    // 1. FULLSCREEN CURSOR GLOW & FADING LIGHT PARTICLES
     // -----------------------------------------------------------------------
     const cursorCanvas = document.getElementById('cursorCanvas');
     const cCtx = cursorCanvas.getContext('2d');
 
     let mousePos = { x: -1000, y: -1000 };
+    let particles = [];
 
     function resizeCursorCanvas() {
-      const dpr = window.devicePixelRatio || 1;
-      cursorCanvas.width = window.innerWidth * dpr;
-      cursorCanvas.height = window.innerHeight * dpr;
-      cCtx.resetTransform();
-      cCtx.scale(dpr, dpr);
+      cursorCanvas.width = window.innerWidth;
+      cursorCanvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resizeCursorCanvas);
     resizeCursorCanvas();
@@ -373,24 +373,59 @@
     window.addEventListener('mousemove', (e) => {
       mousePos.x = e.clientX;
       mousePos.y = e.clientY;
+
+      // Spawn subtle light particles on mouse move
+      for (let i = 0; i < 2; i++) {
+        particles.push({
+          x: e.clientX + (Math.random() - 0.5) * 10,
+          y: e.clientY + (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: (Math.random() - 0.5) * 1.5,
+          size: Math.random() * 2.5 + 1,
+          alpha: 1.0,
+          life: 0.03 + Math.random() * 0.02
+        });
+      }
     });
 
     function renderCursorGlow() {
-      cCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      cCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
+      // Radial mouse spotlight glow
       if (mousePos.x > 0 && mousePos.y > 0) {
         const spotGlow = cCtx.createRadialGradient(
           mousePos.x, mousePos.y, 0,
-          mousePos.x, mousePos.y, 150
+          mousePos.x, mousePos.y, 180
         );
-        spotGlow.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
-        spotGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0.02)');
+        spotGlow.addColorStop(0, 'rgba(255, 255, 255, 0.09)');
+        spotGlow.addColorStop(0.5, 'rgba(0, 255, 200, 0.03)');
         spotGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         cCtx.beginPath();
-        cCtx.arc(mousePos.x, mousePos.y, 150, 0, Math.PI * 2);
+        cCtx.arc(mousePos.x, mousePos.y, 180, 0, Math.PI * 2);
         cCtx.fillStyle = spotGlow;
         cCtx.fill();
+      }
+
+      // Draw particle trail
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.life;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        cCtx.beginPath();
+        cCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        cCtx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        cCtx.shadowColor = '#ffffff';
+        cCtx.shadowBlur = 8;
+        cCtx.fill();
+        cCtx.shadowBlur = 0;
       }
 
       requestAnimationFrame(renderCursorGlow);
@@ -399,13 +434,14 @@
 
 
     // -----------------------------------------------------------------------
-    // 2. RADAR + ROTATING CENTER SQUARE LIGHT BEAM CANVAS (MATCHES VIDEO)
+    // 2. RADAR + ROTATING LIGHT SQUARE CANVAS (60 FPS)
     // -----------------------------------------------------------------------
     const radarCanvas = document.getElementById('radarCanvas');
     const rCtx = radarCanvas.getContext('2d');
 
-    let rWidth, rHeight;
-    let squareRotation = 0; // Continuous rotation angle of the center square
+    let rWidth, rHeight, rCenterX, rCenterY;
+    let sweepAngle = 0;
+    let squareRotation = 0; // Rotates the square light frame
 
     const nodes = [
       { label: "THREAT DETECTION", angle: -0.8, distance: 0.82 },
@@ -424,6 +460,9 @@
       rWidth = radarCanvas.width;
       rHeight = radarCanvas.height;
 
+      rCenterX = rWidth * 0.5;
+      rCenterY = rHeight * 0.5;
+
       rCtx.resetTransform();
       rCtx.scale(dpr, dpr);
     }
@@ -441,89 +480,110 @@
 
       rCtx.clearRect(0, 0, displayWidth, displayHeight);
 
-      // A. CONCENTRIC RADAR CIRCLES
-      rCtx.lineWidth = 1;
-      const rings = [0.35, 0.65, 0.92];
-      rings.forEach(r => {
-        rCtx.beginPath();
-        rCtx.arc(cx, cy, maxRadius * r, 0, Math.PI * 2);
-        rCtx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
-        rCtx.stroke();
-      });
-
-      // B. ROTATING CENTER SQUARE WITH ATTACHED GLOWING LIGHT BEAM
-      const squareSize = maxRadius * 0.52;
-      const halfSq = squareSize / 2;
-      const beamLength = maxRadius * 1.05;
-
+      // A. ROTATING WHITE LIGHT SQUARE FRAME
       rCtx.save();
       rCtx.translate(cx, cy);
       rCtx.rotate(squareRotation);
 
-      // 1. PROJECTED GLOWING SEARCHLIGHT CONE FROM THE RIGHT FACE
-      const beamGrad = rCtx.createLinearGradient(halfSq, 0, halfSq + beamLength, 0);
-      beamGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.45)');
-      beamGrad.addColorStop(0.2, 'rgba(230, 240, 255, 0.22)');
-      beamGrad.addColorStop(0.6, 'rgba(200, 225, 255, 0.06)');
-      beamGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+      const squareSize = maxRadius * 1.15;
+      const halfSq = squareSize / 2;
 
-      rCtx.beginPath();
-      rCtx.moveTo(halfSq, -halfSq); // Top corner of square face
-      rCtx.lineTo(halfSq + beamLength, -halfSq - beamLength * 0.35); // Outer top flare
-      rCtx.lineTo(halfSq + beamLength, halfSq + beamLength * 0.15);  // Outer bottom flare
-      rCtx.lineTo(halfSq, halfSq);   // Bottom corner of square face
-      rCtx.closePath();
-
-      rCtx.fillStyle = beamGrad;
-      rCtx.fill();
-
-      // Sharp bright leading edge of the light beam
-      rCtx.beginPath();
-      rCtx.moveTo(halfSq, halfSq);
-      rCtx.lineTo(halfSq + beamLength, halfSq + beamLength * 0.15);
-      rCtx.strokeStyle = 'rgba(255, 255, 255, 0.70)';
-      rCtx.lineWidth = 1.2;
-      rCtx.stroke();
-
-      // 2. CENTER SQUARE (Dark filled to clean-mask concentric lines behind it)
-      rCtx.fillStyle = '#08080a';
-      rCtx.fillRect(-halfSq, -halfSq, squareSize, squareSize);
-
+      // Draw Glowing Light Square Border
       rCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       rCtx.lineWidth = 1.2;
+      rCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      rCtx.shadowBlur = 10;
       rCtx.strokeRect(-halfSq, -halfSq, squareSize, squareSize);
+
+      // Draw Inner Secondary Square Frame (Dashed)
+      rCtx.setLineDash([6, 6]);
+      rCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      rCtx.strokeRect(-halfSq * 0.85, -halfSq * 0.85, squareSize * 0.85, squareSize * 0.85);
+      rCtx.setLineDash([]); // Reset line dash
+
+      // Corner Glowing Nodes on the Light Square
+      const corners = [
+        [-halfSq, -halfSq],
+        [halfSq, -halfSq],
+        [halfSq, halfSq],
+        [-halfSq, halfSq]
+      ];
+      corners.forEach(([px, py]) => {
+        rCtx.beginPath();
+        rCtx.arc(px, py, 3.5, 0, Math.PI * 2);
+        rCtx.fillStyle = '#ffffff';
+        rCtx.shadowColor = '#ffffff';
+        rCtx.shadowBlur = 12;
+        rCtx.fill();
+      });
 
       rCtx.restore();
 
-      // C. TARGET RADAR NODES & SWEEP DETECTION
+      // B. CONCENTRIC RADAR CIRCLES
+      rCtx.lineWidth = 1;
+      const rings = [0.35, 0.62, 0.88];
+      rings.forEach(r => {
+        rCtx.beginPath();
+        rCtx.arc(cx, cy, maxRadius * r, 0, Math.PI * 2);
+        rCtx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        rCtx.stroke();
+      });
+
+      // C. RADAR SWEEPER BEAM
+      const sweepLength = maxRadius * 0.95;
+      rCtx.save();
+      rCtx.beginPath();
+      rCtx.moveTo(cx, cy);
+      rCtx.arc(cx, cy, sweepLength, sweepAngle - 0.45, sweepAngle);
+      rCtx.closePath();
+
+      const gradient = rCtx.createConicGradient(sweepAngle, cx, cy);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.22)');
+      gradient.addColorStop(0.08, 'rgba(0, 255, 200, 0.1)');
+      gradient.addColorStop(0.25, 'rgba(0, 0, 0, 0)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+      rCtx.fillStyle = gradient;
+      rCtx.fill();
+      rCtx.restore();
+
+      // Sweeper Leading Line
+      rCtx.beginPath();
+      rCtx.moveTo(cx, cy);
+      rCtx.lineTo(cx + Math.cos(sweepAngle) * sweepLength, cy + Math.sin(sweepAngle) * sweepLength);
+      rCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      rCtx.lineWidth = 1.5;
+      rCtx.stroke();
+
+      // D. TARGET NODES
       nodes.forEach(node => {
         const nx = cx + Math.cos(node.angle) * (maxRadius * node.distance);
         const ny = cy + Math.sin(node.angle) * (maxRadius * node.distance);
 
-        // Check if node is inside the rotating light beam
-        let diff = (node.angle - squareRotation) % (Math.PI * 2);
-        if (diff < -Math.PI) diff += Math.PI * 2;
-        if (diff > Math.PI) diff -= Math.PI * 2;
-
-        const isHit = diff >= -0.35 && diff <= 0.35;
+        let diff = (sweepAngle - node.angle) % (Math.PI * 2);
+        if (diff < 0) diff += Math.PI * 2;
+        const isHit = diff < 0.35;
 
         rCtx.beginPath();
         rCtx.arc(nx, ny, isHit ? 4.5 : 3, 0, Math.PI * 2);
-        rCtx.fillStyle = isHit ? '#ffffff' : 'rgba(255, 255, 255, 0.32)';
+        rCtx.fillStyle = isHit ? '#ffffff' : 'rgba(255, 255, 255, 0.35)';
         if (isHit) {
           rCtx.shadowColor = '#ffffff';
-          rCtx.shadowBlur = 10;
+          rCtx.shadowBlur = 12;
         }
         rCtx.fill();
         rCtx.shadowBlur = 0;
 
         rCtx.font = '500 10px "JetBrains Mono", monospace';
-        rCtx.fillStyle = isHit ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.32)';
+        rCtx.fillStyle = isHit ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.3)';
         rCtx.fillText(node.label, nx + 10, ny + 3);
       });
 
-      squareRotation += 0.008;
-      if (squareRotation > Math.PI * 2) squareRotation -= Math.PI * 2;
+      // Update Angles Smoothly
+      sweepAngle += 0.012;
+      squareRotation += 0.004; // Smooth continuous rotation of the white light square
+
+      if (sweepAngle > Math.PI * 2) sweepAngle = 0;
 
       requestAnimationFrame(drawRadarAndSquare);
     }
